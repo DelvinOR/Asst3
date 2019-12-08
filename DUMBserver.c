@@ -8,7 +8,7 @@ int main(int argc, char**argv){
     // On start the server should be invoked with a port number
 
     if(argc != 2){
-        printf("Error in arguments\n");
+        perror("Error in arguments\n");
         return -1;
     }
 
@@ -16,7 +16,10 @@ int main(int argc, char**argv){
 
     int server_socket, PORT;
     
-    server_socket = socket(AF_INET, SOCK_STREAM,0);
+    if((server_socket = socket(AF_INET, SOCK_STREAM,0)) < 0){
+        perror("Error in creating server socket\n");
+        return -1;
+    }
     PORT = atoi(argv[1]);
 
     struct sockaddr_in server_address;
@@ -25,9 +28,18 @@ int main(int argc, char**argv){
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     // Bind socket to our specified IP and PORT
-    bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address));
+    if((bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address))) == 0){
+        perror("bind failed\n");
+        return -1;
+    }
 
-    
+    // Size connection allowed to server is set to 15
+    if(listen(server_socket, 15) < 0){
+        perror("listen error\n");
+        return -1;
+    }
+
+
 
 
 

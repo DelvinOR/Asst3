@@ -8,7 +8,7 @@ int main(int argc, char**argv){
     
     if(argc != 3){
         // Too little or too many arguments when running C file
-        printf("Not enough arguments\n");
+        perror("Not enough arguments\n");
         return -1;
     }
 
@@ -17,9 +17,9 @@ int main(int argc, char**argv){
 
     PORT =  atoi(argv[2]);
 
-    if (network_socket = socket(AF_INET, SOCK_STREAM, 0) < 0){
+    if ((network_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0){
         // error
-        printf("Error\n");
+        perror("Error in creating socket\n");
         return -1;
     }
 
