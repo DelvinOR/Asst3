@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <pthread.h>
 
 int main(int argc, char**argv){
     // On start the server should be invoked with a port number
@@ -14,8 +15,9 @@ int main(int argc, char**argv){
 
     char** messageBoxStore;
 
-    int server_socket, PORT;
-    
+    int server_socket, client_socket, PORT;
+    struct sockaddr_storage serverStorage;
+
     if((server_socket = socket(AF_INET, SOCK_STREAM,0)) < 0){
         perror("Error in creating server socket\n");
         return -1;
@@ -39,10 +41,17 @@ int main(int argc, char**argv){
         return -1;
     }
 
+    // The second parameter in the accept() is the client's address
+    socklen_t addrlen = sizeof(serverStorage);
+    pthread_t threads[20];
+    while(1){
 
+        // Create new socket for every request
+        if((client_socket = accept(server_socket, (struct sockaddr*)&server_address, &addrlen)) < 0 ){
+            perror("Error in aceepting new socket\n");
+            return -1;
+        }
+    }
 
-
-
-    
     return 0;
 }
