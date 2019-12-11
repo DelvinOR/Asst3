@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <string.h>
+#include <ctype.h>
 
 
 struct messageBox{
@@ -23,6 +24,45 @@ struct message{
 char* clientCommand;
 
 struct messageBox * messageBoxStore;
+
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+int boxAlreadyExist(struct messageBox * boxStorePointer, char * arg0){
+    
+    if(boxStorePointer == NULL){
+        return 1;
+    }
+
+    struct messageBox * ptr  = boxStorePointer;
+    while(ptr != NULL){
+        if(strcmp(arg0, ptr->name) == 0){
+            return 0;
+        }
+        ptr = ptr->nextMessageBox;
+    }
+
+    return 1;
+
+}
+
+void createMessageBox(char * arg0){
+    
+    if(messageBoxStore == NULL){
+        messageBoxStore = (struct messageBox*)malloc(sizeof(struct messageBox));
+        strcpy(messageBoxStore -> name, arg0);
+        return;
+    }
+
+    struct messageBox * ptr = messageBoxStore;
+    while(ptr -> nextMessageBox!= NULL){
+        ptr -> nextMessageBox;
+    }
+
+    ptr -> nextMessageBox = (struct messageBox*) malloc(sizeof(struct messageBox));
+    strcpy(ptr -> nextMessageBox ->name, arg0);
+    return;
+    
+}
 
 void * requestThread(void * arg){
     int cSoc = *((int *) arg);
@@ -42,6 +82,44 @@ void * requestThread(void * arg){
             return;
         }else if(memcmp(clientCommand, "CREAT", 5) == 0){
 
+            pthread_mutex_lock(&lock);
+            if(clientCommand[5] != ' '){
+                send(cSoc, "ER:WHAT?",8,0);
+                pthread_mutex_unlock(&lock);
+                return;
+                
+            }
+
+            char * arg0 = strtok(clientCommand, " ");
+            arg0 = strtok(NULL, " ");
+
+            if(strlen(arg0) < 5 || strlen(arg0) > 25){
+                send(cSoc, "ER:WHAT?",8,0);
+                pthread_mutex_unlock(&lock);
+                return;
+                
+            }
+
+            if(!isalpha(arg0[0])){
+                send(cSoc, "ER:WHAT?",8,0);
+                pthread_mutex_unlock(&lock);
+                return;
+                
+            }
+
+            if(boxAlreadyExist(messageBoxStore, arg0) == 0){
+                send(cSoc, "ER:EXIST?",8,0);
+                pthread_mutex_unlock(&lock);
+                return;
+                
+            }else{
+                // create the new messageBoxStore
+                createMessageBox(arg0);
+                send(cSoc, "OK!",4,0);
+                pthread_mutex_unlock(&lock);
+                return;
+
+            }
         }else if(memcmp(clientCommand, "OPNBX",5) == 0){
 
         }else if(strcmp(clientCommand, "NXTMG") == 0){
@@ -68,7 +146,7 @@ int main(int argc, char**argv){
         return -1;
     }
 
-    messageBoxStore = (struct messageBox *) malloc(sizeof(struct messageBox));
+    //messageBoxStore = (struct messageBox *) malloc(sizeof(struct messageBox));
 
     int server_socket, client_socket, PORT;
     struct sockaddr_storage serverStorage;
