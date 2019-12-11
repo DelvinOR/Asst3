@@ -7,9 +7,22 @@
 #include <time.h>
 #include <string.h>
 
-char** messageBoxStore; // will use realloc to resize messageBoxStore
-int* messageBoxUnavailable;
+
+struct messageBox{
+    char name[26];
+    struct message * messageQ;
+    int available;
+    struct messageBox * nextMessageBox;
+};
+
+struct message{
+    char text[200];
+    struct message * nextMsg;
+};
+
 char* clientCommand;
+
+struct messageBox * messageBoxStore;
 
 void * requestThread(void * arg){
     int cSoc = *((int *) arg);
@@ -48,18 +61,14 @@ void * requestThread(void * arg){
 
 int main(int argc, char**argv){
     
-    messageBoxStore = (char**)malloc(20);
-    messageBoxUnavailable = (int*)malloc(4*20);
-    int j = 0;
-    while(j < 20){
-        messageBoxStore[j] = (char*)malloc(200);
-        messageBoxUnavailable[j] = 0;
-    }
+    
     // On start the server should be invoked with a port number
     if(argc != 2){
         perror("Error in arguments\n");
         return -1;
     }
+
+    messageBoxStore = (struct messageBox *) malloc(sizeof(struct messageBox));
 
     int server_socket, client_socket, PORT;
     struct sockaddr_storage serverStorage;
