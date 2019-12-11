@@ -12,7 +12,7 @@
 struct messageBox{
     char name[26];
     struct message * messageQ;
-    int available;
+    int currentUser; // make this equal to the socket that requested access
     struct messageBox * nextMessageBox;
 };
 
