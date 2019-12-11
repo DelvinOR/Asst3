@@ -5,6 +5,8 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
+char** messageBoxStore;
+
 int main(int argc, char**argv){
     // On start the server should be invoked with a port number
 
@@ -12,8 +14,6 @@ int main(int argc, char**argv){
         perror("Error in arguments\n");
         return -1;
     }
-
-    char** messageBoxStore;
 
     int server_socket, client_socket, PORT;
     struct sockaddr_storage serverStorage;
@@ -51,6 +51,8 @@ int main(int argc, char**argv){
             perror("Error in aceepting new socket\n");
             return -1;
         }
+
+        // On a connection request, the server needs to create a new thread to handle all client requessts
     }
 
     return 0;
