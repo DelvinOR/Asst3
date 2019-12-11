@@ -47,7 +47,8 @@ int main(int argc, char**argv){
     while(1){
 
         // Create new socket for every request
-        if((client_socket = accept(server_socket, (struct sockaddr*)&server_address, &addrlen)) < 0 ){
+        // serverStorage holds the address of the client
+        if((client_socket = accept(server_socket, (struct sockaddr*)&serverStorage, &addrlen)) < 0 ){
             perror("Error in aceepting new socket\n");
             return -1;
         }
