@@ -4,12 +4,58 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <time.h>
+#include <string.h>
 
-char** messageBoxStore;
+char** messageBoxStore; // will use realloc to resize messageBoxStore
+int* messageBoxUnavailable;
+char* clientCommand;
+
+void * requestThread(void * arg){
+    int cSoc = *((int *) arg);
+    
+    while(1){
+        recv(cSoc, clientCommand, 200, 0);
+        if (strcmp(clientCommand,NULL) == 0){
+            // User did not enter anything 
+            perror("please enter a command\n");
+        }else if(strcmp(clientCommand,"HELLO") ==  0){
+            char * serverHello = (char*)malloc(19);
+            strcpy(serverHello, "HELLO DUMBv0 ready!");
+            send(cSoc, serverHello, 19, 0);
+            free(serverHello);
+        }else if(strcmp(clientCommand, "GDBYE")){
+            close(cSoc);
+            return;
+        }else if(memcmp(clientCommand, "CREAT", 5) == 0){
+
+        }else if(memcmp(clientCommand, "OPNBX",5) == 0){
+
+        }else if(strcmp(clientCommand, "NXTMG") == 0){
+
+        }else if(memcmp(clientCommand, "PUTMG",5) == 0){
+
+        }else if(memcmp(clientCommand, "DELBX", 5) == 0){
+
+        }else{
+            if(memcmp(clientCommand, "CLSBX", 5) == 0){
+
+            }
+        }
+    }
+    
+} 
 
 int main(int argc, char**argv){
+    
+    messageBoxStore = (char**)malloc(20);
+    messageBoxUnavailable = (int*)malloc(4*20);
+    int j = 0;
+    while(j < 20){
+        messageBoxStore[j] = (char*)malloc(200);
+        messageBoxUnavailable[j] = 0;
+    }
     // On start the server should be invoked with a port number
-
     if(argc != 2){
         perror("Error in arguments\n");
         return -1;
@@ -44,6 +90,7 @@ int main(int argc, char**argv){
     // The second parameter in the accept() is the client's address
     socklen_t addrlen = sizeof(serverStorage);
     pthread_t threads[20];
+    int i = 0;
     while(1){
 
         // Create new socket for every request
@@ -54,7 +101,22 @@ int main(int argc, char**argv){
         }
 
         // On a connection request, the server needs to create a new thread to handle all client requessts
+        if(pthread_create(&threads[i], NULL, requestThread, &client_socket) != 0){
+            perror("Error in creating request thread\n");
+        }
+
+        if( i >= 20){
+            // we have reached the maximums threads that there are to create so now we must wait for all of them to finish
+            i = 0;
+            while(i < 20){
+                pthread_join(threads[i++],NULL);
+            }
+            // we set i to 0 again so that we can continue to listen for more requests
+            i = 0;
+        }
     }
 
+    close(server_socket);
+    close(client_socket);
     return 0;
 }
