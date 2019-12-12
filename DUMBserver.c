@@ -80,14 +80,14 @@ void * requestThread(void * arg){
             send(cSoc, serverHello, 19, 0);
             free(serverHello);
         }else if(strcmp(clientCommand, "GDBYE")){
-            return;
+            return NULL;
         }else if(memcmp(clientCommand, "CREAT", 5) == 0){
 
             pthread_mutex_lock(&lock);
             if(clientCommand[5] != ' '){
                 send(cSoc, "ER:WHAT?",9,0);
                 pthread_mutex_unlock(&lock);
-                return;
+                return NULL;
                 
             }
 
@@ -97,28 +97,28 @@ void * requestThread(void * arg){
             if(strlen(arg0) < 5 || strlen(arg0) > 25){
                 send(cSoc, "ER:WHAT?",9,0);
                 pthread_mutex_unlock(&lock);
-                return;
+                return NULL;
                 
             }
 
             if(!isalpha(arg0[0])){
                 send(cSoc, "ER:WHAT?",9,0);
                 pthread_mutex_unlock(&lock);
-                return;
+                return NULL;
                 
             }
 
             if(boxAlreadyExist(messageBoxStore, arg0) == 0){
                 send(cSoc, "ER:EXIST?",9,0);
                 pthread_mutex_unlock(&lock);
-                return;
+                return NULL;
                 
             }else{
                 // create the new messageBoxStore
                 createMessageBox(arg0);
                 send(cSoc, "OK!",4,0);
                 pthread_mutex_unlock(&lock);
-                return;
+                return NULL;
 
             }
         }else if(memcmp(clientCommand, "OPNBX",5) == 0){
@@ -127,13 +127,13 @@ void * requestThread(void * arg){
 
             if(strlen(arg0) < 5 || strlen(arg0) > 25){
                 send(cSoc, "ER:WHAT?",9,0);
-                return;
+                return NULL;
                 
             }
 
             if(!isalpha(arg0[0])){
                 send(cSoc, "ER:WHAT?",9,0);
-                return;
+                return NULL;
             }
 
             if(boxAlreadyExist(messageBoxStore, arg0) == 0){
@@ -147,19 +147,19 @@ void * requestThread(void * arg){
 
                 if(ptr -> currentUser != cSoc){
                     send(cSoc, "ER:OPEND",9,0);
-                    return;
+                    return NULL;
                 }
 
                 if(ptr -> currentUser == -1){
                     ptr ->currentUser = cSoc;
                     send(cSoc, "OK!", 4, 0);
-                    return;
+                    return NULL;
                 }
 
             }else{
                 if(boxAlreadyExist(messageBoxStore,arg0) == 1){
                     send(cSoc, "ER:NEXST",9,0);
-                    return;
+                    return NULL;
                 }
             }
         }else if(strcmp(clientCommand, "NXTMG") == 0){
@@ -174,14 +174,14 @@ void * requestThread(void * arg){
             if(ptr == NULL){
             // user does not have a message box open
                 send(cSoc, "ER:NOOPN",9,0);
-                return;
+                return NULL;
             }
 
             struct message * temp = ptr ->messageQ;
             if(temp == NULL){
                 // no messageQ exists meaning there are no messages
                 send(cSoc, "ER:EMPTY",9,0);
-                return;
+                return NULL;
             }
             char * messageCpy;
             strcpy(messageCpy, temp -> text);
@@ -196,12 +196,12 @@ void * requestThread(void * arg){
             send(cSoc, res,sizeof(res),0);
             free(temp);
             free(messageCpy);
-            return;
+            return NULL;
 
         }else if(memcmp(clientCommand, "PUTMG",5) == 0){
             if(clientCommand[5] != '!'){
                 send(cSoc, "ER:WHAT?",9,0);
-                return;
+                return NULL;
             }
 
             char * arg0 = strtok(clientCommand, "!");
@@ -211,7 +211,7 @@ void * requestThread(void * arg){
             arg0 = strtok(NULL, "!");
             if(sizeOfMessageToBeAdded != strlen(arg0)){
                 send(cSoc, "ER:WHAT?",9,0);
-                return;
+                return NULL;
             }
             char * message;
             strcpy(message,arg0);
@@ -227,7 +227,7 @@ void * requestThread(void * arg){
             if(ptr == NULL){
             // user does not have a message box open
                 send(cSoc, "ER:NOOPN",9,0);
-                return;
+                return NULL;
             }
 
             struct message * qPtr = ptr ->messageQ;
@@ -242,15 +242,118 @@ void * requestThread(void * arg){
             strcpy(res, "OK!");
             strcat(res,itoa(sizeOfMessageToBeAdded));
             send(cSoc, res, strlen(res), 0);
-            return;
+            return NULL;
 
         }else if(memcmp(clientCommand, "DELBX", 5) == 0){
-            
+            if(clientCommand[5] != ' '){
+                send(cSoc, "ER:WHAT?", 9, 0);
+                return NULL;
+            }
+
+            char * boxToBeDeleted = strtok(clientCommand, " ");
+            boxToBeDeleted = strtok(NULL, " ");
+
+            if(!isalpha(boxToBeDeleted[0])){
+                send(cSoc, "ER:WHAT?", 9, 0);
+                return NULL;
+            }
+
+            if(boxAlreadyExist(messageBoxStore,boxToBeDeleted == 1)){
+                send(cSoc, "ER:NEXST", 9, 0);
+                return NULL;
+            }
+
+            pthread_mutex_lock(&lock);
+
+            // delete boxToBeDeleted from messageBoxStore
+            struct messageBox * storePtr = messageBoxStore;
+            struct messageBox * prev = NULL;
+            while(storePtr != NULL){
+                if(strcmp(boxToBeDeleted, storePtr -> name) == 0){
+                    break;
+                }
+                prev = storePtr;
+                storePtr -> nextMessageBox;
+            } 
+
+            if(storePtr == NULL){
+                // NO BOX EXISTS IN THE STORE
+                send(cSoc, "ER:NEXST", 9, 0);
+                pthread_mutex_unlock(&lock);
+                return NULL;
+            }
+
+            if(storePtr -> currentUser != -1){
+                send(cSoc, "ER:OPEND", 9, 0);
+                pthread_mutex_unlock(&lock);
+                return NULL;
+            }
+
+            // there are no messages on the queue so you can delete this box
+            if(storePtr -> messageQ != NULL){
+                send(cSoc, "ER:NOTMT", 9, 0);
+                pthread_mutex_unlock(&lock);
+                return NULL;
+            }
+
+            // delete this box
+            if(prev == NULL){
+                // box to be deleted is first box
+                prev = storePtr;
+                storePtr = storePtr->nextMessageBox;
+                free(prev);
+                send(cSoc, "OK!", 4, 0);
+                pthread_mutex_unlock(&lock);
+                return NULL;
+            }
+
+            prev -> nextMessageBox = storePtr -> nextMessageBox;
+            storePtr -> nextMessageBox = NULL;
+            free(storePtr);
+            send(cSoc, "OK!", 4, 0);
+            pthread_mutex_unlock(&lock);
+            return NULL;
+
         }else{
             if(memcmp(clientCommand, "CLSBX", 5) == 0){
+                if(clientCommand[5] != " "){
+                    send(cSoc, "ER:WHAT?", 9, 0);
+                    return NULL;
+                }
 
+                char * boxName = strtok(boxName, " ");
+                boxName = strtok(NULL, " ");
+
+                if(boxAlreadyExist(messageBoxStore,boxName) == 1){
+                    send(cSoc, "ER:NEXST", 9, 0);
+                    return NULL;
+                }
+
+                struct messageBox * messageBoxStorePtr = messageBoxStore;
+                while(messageBoxStorePtr != NULL){
+                    if(strcmp(messageBoxStorePtr->name, boxName) == 0){
+                        break;
+                    }
+                    messageBoxStorePtr = messageBoxStorePtr->nextMessageBox;
+                }
+                
+                if(messageBoxStorePtr == NULL){
+                    send(cSoc, "ER:NOOPN",9, 0);
+                    return NULL;
+                }
+
+                if(messageBoxStorePtr -> currentUser != cSoc){
+                    send(cSoc, "ER:NOOPN",9, 0);
+                    return NULL;
+                }
+
+                messageBoxStorePtr -> currentUser = -1;
+                send(cSoc, "OK!", 4, 0);
+                return NULL;
             }else{
                 // command does not exist
+                send(cSoc, "ER:WHAT?", 9, 0);
+                return NULL;
             }
         }
     }
