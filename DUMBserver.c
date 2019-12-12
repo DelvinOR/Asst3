@@ -71,7 +71,7 @@ void * requestThread(void * arg){
     
     while(1){
         recv(cSoc, clientCommand, 200, 0);
-        if (strcmp(clientCommand,NULL) == 0){
+        if (strcmp(clientCommand,"") == 0){
             // User did not enter anything 
             perror("please enter a command\n");
         }else if(strcmp(clientCommand,"HELLO") ==  0){
@@ -190,7 +190,9 @@ void * requestThread(void * arg){
             int messageCpyLength = strlen(messageCpy);
             char * res;
             strcpy(res, "OK!");
-            strcat(res,itoa(messageCpyLength));
+            char * ml;
+            sprintf(ml, "%d", messageCpyLength);
+            strcat(res,ml);
             strcat(res,"!");
             strcat(res,messageCpy);
             send(cSoc, res,sizeof(res),0);
@@ -240,7 +242,9 @@ void * requestThread(void * arg){
             strcpy(qPtr -> text, message);
             char * res;
             strcpy(res, "OK!");
-            strcat(res,itoa(sizeOfMessageToBeAdded));
+            char *sMTOA;
+            sprintf(sMTOA, "%d", sizeOfMessageToBeAdded);
+            strcat(res,sMTOA);
             send(cSoc, res, strlen(res), 0);
             return NULL;
 
@@ -258,7 +262,7 @@ void * requestThread(void * arg){
                 return NULL;
             }
 
-            if(boxAlreadyExist(messageBoxStore,boxToBeDeleted == 1)){
+            if(boxAlreadyExist(messageBoxStore,boxToBeDeleted) == 1){
                 send(cSoc, "ER:NEXST", 9, 0);
                 return NULL;
             }
@@ -316,7 +320,7 @@ void * requestThread(void * arg){
 
         }else{
             if(memcmp(clientCommand, "CLSBX", 5) == 0){
-                if(clientCommand[5] != " "){
+                if(clientCommand[5] != ' '){
                     send(cSoc, "ER:WHAT?", 9, 0);
                     return NULL;
                 }
@@ -386,7 +390,7 @@ int main(int argc, char**argv){
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     // Bind socket to our specified IP and PORT
-    if((bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address))) == 0){
+    if((bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address))) < 0){
         perror("bind failed\n");
         return -1;
     }
