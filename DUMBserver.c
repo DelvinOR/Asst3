@@ -191,7 +191,7 @@ void * requestThread(void * arg){
             char * res;
             strcpy(res, "OK!");
             char * ml;
-            sprintf(ml, "%d", messageCpyLength);
+            sprintf(ml, "%d\n", messageCpyLength);
             strcat(res,ml);
             strcat(res,"!");
             strcat(res,messageCpy);
@@ -243,7 +243,7 @@ void * requestThread(void * arg){
             char * res;
             strcpy(res, "OK!");
             char *sMTOA;
-            sprintf(sMTOA, "%d", sizeOfMessageToBeAdded);
+            sprintf(sMTOA, "%d\n", sizeOfMessageToBeAdded);
             strcat(res,sMTOA);
             send(cSoc, res, strlen(res), 0);
             return NULL;

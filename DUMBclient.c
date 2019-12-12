@@ -28,7 +28,8 @@ int main(int argc, char**argv){
     struct sockaddr_in sa;//gethostbyname, gethostbyaddr
     sa.sin_family = AF_INET;
     sa.sin_port = htons(PORT);
-    sa.sin_addr = gethostbyname(argv[1])->h_addr_list[0];
+    //sa.sin_addr = gethostbyname(argv[1])->h_addr_list[0];
+	sa.sin_addr.s_addr = INADDR_ANY;
 	int i;
 	int succ = 0;
 	for (i = 0; i < 3; i++){
@@ -270,7 +271,7 @@ int main(int argc, char**argv){
 			int size = strlen(input);
 			char pt2[64];
 			sprintf(pt2, "%d\0", size);
-			size = strlen(pt2) + strlen(pt1);
+			size = strlen(pt2) + strlen(pt2);
 			char msg[4096] = "PUTMG!";//*msg = malloc(size + strlen(input));
 			strcat(msg, pt2);
 			char pt3 = "!";
