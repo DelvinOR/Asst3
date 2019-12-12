@@ -10,7 +10,7 @@ int main(int argc, char**argv){
     if(argc < 3){
         // Too little or too many arguments when running C file
         perror("Not enough arguments\n");
-		printf("DUMBclient <address> <port>\n");-
+		printf("DUMBclient <address> <port>\n");
         return -1;
     }
 
