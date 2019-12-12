@@ -17,7 +17,7 @@ struct messageBox{
 };
 
 struct message{
-    char text[200];
+    char * text;
     struct message * nextMsg;
 };
 
@@ -50,6 +50,7 @@ void createMessageBox(char * arg0){
     if(messageBoxStore == NULL){
         messageBoxStore = (struct messageBox*)malloc(sizeof(struct messageBox));
         strcpy(messageBoxStore -> name, arg0);
+        messageBoxStore ->currentUser = -1;
         return;
     }
 
@@ -60,6 +61,7 @@ void createMessageBox(char * arg0){
 
     ptr -> nextMessageBox = (struct messageBox*) malloc(sizeof(struct messageBox));
     strcpy(ptr -> nextMessageBox ->name, arg0);
+    ptr->nextMessageBox->currentUser = -1;
     return;
     
 }
@@ -78,13 +80,12 @@ void * requestThread(void * arg){
             send(cSoc, serverHello, 19, 0);
             free(serverHello);
         }else if(strcmp(clientCommand, "GDBYE")){
-            close(cSoc);
             return;
         }else if(memcmp(clientCommand, "CREAT", 5) == 0){
 
             pthread_mutex_lock(&lock);
             if(clientCommand[5] != ' '){
-                send(cSoc, "ER:WHAT?",8,0);
+                send(cSoc, "ER:WHAT?",9,0);
                 pthread_mutex_unlock(&lock);
                 return;
                 
@@ -94,21 +95,21 @@ void * requestThread(void * arg){
             arg0 = strtok(NULL, " ");
 
             if(strlen(arg0) < 5 || strlen(arg0) > 25){
-                send(cSoc, "ER:WHAT?",8,0);
+                send(cSoc, "ER:WHAT?",9,0);
                 pthread_mutex_unlock(&lock);
                 return;
                 
             }
 
             if(!isalpha(arg0[0])){
-                send(cSoc, "ER:WHAT?",8,0);
+                send(cSoc, "ER:WHAT?",9,0);
                 pthread_mutex_unlock(&lock);
                 return;
                 
             }
 
             if(boxAlreadyExist(messageBoxStore, arg0) == 0){
-                send(cSoc, "ER:EXIST?",8,0);
+                send(cSoc, "ER:EXIST?",9,0);
                 pthread_mutex_unlock(&lock);
                 return;
                 
@@ -121,16 +122,135 @@ void * requestThread(void * arg){
 
             }
         }else if(memcmp(clientCommand, "OPNBX",5) == 0){
+            char * arg0 = strtok(clientCommand, " ");
+            arg0 = strtok(NULL, " ");
 
+            if(strlen(arg0) < 5 || strlen(arg0) > 25){
+                send(cSoc, "ER:WHAT?",9,0);
+                return;
+                
+            }
+
+            if(!isalpha(arg0[0])){
+                send(cSoc, "ER:WHAT?",9,0);
+                return;
+            }
+
+            if(boxAlreadyExist(messageBoxStore, arg0) == 0){
+                struct messageBox * ptr = messageBoxStore;
+                while(ptr != NULL){
+                    if(strcmp(ptr->name, arg0) == 0){
+                        break;
+                    }
+                    ptr -> nextMessageBox;
+                }
+
+                if(ptr -> currentUser != cSoc){
+                    send(cSoc, "ER:OPEND",9,0);
+                    return;
+                }
+
+                if(ptr -> currentUser == -1){
+                    ptr ->currentUser = cSoc;
+                    send(cSoc, "OK!", 4, 0);
+                    return;
+                }
+
+            }else{
+                if(boxAlreadyExist(messageBoxStore,arg0) == 1){
+                    send(cSoc, "ER:NEXST",9,0);
+                    return;
+                }
+            }
         }else if(strcmp(clientCommand, "NXTMG") == 0){
+            // FIND THE MESSAGE BOX THAT THIS CURRENT USER HAS AND RETURN AND DELETE THE MOST CURRENT MESSAGE
+            struct messageBox * ptr = messageBoxStore;
+            while(ptr != NULL){
+                if(ptr -> currentUser == cSoc){
+                    break;
+                }
+                ptr -> nextMessageBox;
+            }
+            if(ptr == NULL){
+            // user does not have a message box open
+                send(cSoc, "ER:NOOPN",9,0);
+                return;
+            }
+
+            struct message * temp = ptr ->messageQ;
+            if(temp == NULL){
+                // no messageQ exists meaning there are no messages
+                send(cSoc, "ER:EMPTY",9,0);
+                return;
+            }
+            char * messageCpy;
+            strcpy(messageCpy, temp -> text);
+            ptr -> messageQ = ptr ->messageQ->nextMsg;
+
+            int messageCpyLength = strlen(messageCpy);
+            char * res;
+            strcpy(res, "OK!");
+            strcat(res,itoa(messageCpyLength));
+            strcat(res,"!");
+            strcat(res,messageCpy);
+            send(cSoc, res,sizeof(res),0);
+            free(temp);
+            free(messageCpy);
+            return;
 
         }else if(memcmp(clientCommand, "PUTMG",5) == 0){
+            if(clientCommand[5] != '!'){
+                send(cSoc, "ER:WHAT?",9,0);
+                return;
+            }
+
+            char * arg0 = strtok(clientCommand, "!");
+
+            int sizeOfMessageToBeAdded = atoi(arg0);
+
+            arg0 = strtok(NULL, "!");
+            if(sizeOfMessageToBeAdded != strlen(arg0)){
+                send(cSoc, "ER:WHAT?",9,0);
+                return;
+            }
+            char * message;
+            strcpy(message,arg0);
+
+            // now add this message to the end of the current open box
+            struct messageBox * ptr = messageBoxStore;
+            while(ptr != NULL){
+                if(ptr -> currentUser == cSoc){
+                    break;
+                }
+                ptr -> nextMessageBox;
+            }
+            if(ptr == NULL){
+            // user does not have a message box open
+                send(cSoc, "ER:NOOPN",9,0);
+                return;
+            }
+
+            struct message * qPtr = ptr ->messageQ;
+            while(qPtr != NULL){
+                qPtr -> nextMsg;
+            }
+
+            qPtr = (struct message *) malloc (sizeof(struct message));
+            qPtr ->text = (char*) malloc(sizeOfMessageToBeAdded + 1);
+            strcpy(qPtr -> text, message);
+            char * res;
+            strcpy(res, "OK!");
+            strcat(res,itoa(sizeOfMessageToBeAdded));
+            send(cSoc, res, strlen(res), 0);
+            return;
 
         }else if(memcmp(clientCommand, "DELBX", 5) == 0){
-
+            
         }else{
             if(memcmp(clientCommand, "CLSBX", 5) == 0){
 
+            }else{
+                // command does not exist
             }
         }
     }
