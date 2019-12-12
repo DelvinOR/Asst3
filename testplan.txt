@@ -1,0 +1,3 @@
+Our team was able to write both the server file and the client file. We understood the main concepts of socket programming and the TCP protocol.
+
+Despite not being able to test our code thoroughly, we believe that our source code would work the way it was supposed to.
