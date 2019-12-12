@@ -33,7 +33,7 @@ int main(int argc, char**argv){
 	int i;
 	int succ = 0;
 	for (i = 0; i < 3; i++){
-		if(connect(csoc, &sa, sizeof(sa)) != -1){
+		if(connect(csoc, (struct sockaddr*)&sa, sizeof(sa)) != -1){
 			succ = 1;
 			break;
 		}
@@ -46,7 +46,7 @@ int main(int argc, char**argv){
 	}
 	//We are connected, send hello
 	char HLO[] = "HELLO";
-	if (send(csoc, HLO, 6, 0) <= 0){
+	if (send(csoc, HLO, 6, 0) < 0){
 		perror("Failed to send message!\n");
 		shutdown(csoc, SHUT_RDWR);
 		close(csoc);
@@ -55,7 +55,7 @@ int main(int argc, char**argv){
 	printf("HELLO\n");
 	char buff[4096];//make buffer
 	memset(buff, 0, 4096);//initialize buffer to be empty
-	if (recv(csoc, buff, 4096, 0) <= 0){
+	if (recv(csoc, buff, 4096, 0) < 0){
 		printf("Failed to recv message!\n");
 		shutdown(csoc, SHUT_RDWR);
 		close(csoc);
@@ -116,7 +116,7 @@ int main(int argc, char**argv){
 				printf("Error! Message box '%s' already exists.\n", input);
 			}
 			else if (strcmp(buff, "ER:WHAT?") == 0){//command failed
-				printf("Error! Command failed.\n", input);
+				printf("Error! Command failed '%s'.\n", input);
 			}
 			else{//received incorrect response
 				perror("Invalid response from server.\n");
@@ -151,7 +151,7 @@ int main(int argc, char**argv){
 				printf("Error! Message box '%s' is not empty.\n", input);
 			}
 			else if (strcmp(buff, "ER:WHAT?") == 0){//command failed
-				printf("Error! Command failed.\n", input);
+				printf("Error! Command failed '%s'.\n", input);
 			}
 			else{//received incorrect response
 				perror("Invalid response from server.\n");
@@ -183,7 +183,7 @@ int main(int argc, char**argv){
 				printf("Error! Message box is already open.\n");
 			}
 			else if (strcmp(buff, "ER:WHAT?") == 0){//command failed
-				printf("Error! Command failed.\n", input);
+				printf("Error! Command failed '%s'.\n", input);
 			}
 			else{//received incorrect response
 				perror("Invalid response from server.\n");
@@ -195,7 +195,7 @@ int main(int argc, char**argv){
 			scanf("%s", input);
 			char msg[4096] = "CLSBX ";
 			strncat(msg, input, 4095 - 6);
-			if (send(csoc, msg, strlen(msg)+1, 0) <= 0){
+			if (send(csoc, msg, strlen(msg)+1, 0) < 0){
 				perror("Failed to send message!\n");
 				break;
 			}
@@ -212,7 +212,7 @@ int main(int argc, char**argv){
 				printf("Error! Message box '%s' is not open.\n", input);
 			}
 			else if (strcmp(buff, "ER:WHAT?") == 0){//command failed
-				printf("Error! Command failed.\n", input);
+				printf("Error! Command failed '%s'.\n", input);
 			}
 			else{//received incorrect response
 				perror("Invalid response from server.\n");
@@ -243,11 +243,11 @@ int main(int argc, char**argv){
 				printf("Error! No message box opened.\n");
 			}
 			else if (strcmp(buff, "ER:WHAT?") == 0){//command failed
-				printf("Error! Command failed.\n", input);
+				printf("Error! Command failed '%s'.\n", input);
 			}
 			else{//check for message or incorrect response
 				char * token;
-				char delim = "!";
+				char *delim = "!";
 				token = strtok(buff, delim);
 				if (strcmp(token, "OK") == 0){//received message
 					printf("Success! Here is the message:\n");
@@ -270,15 +270,15 @@ int main(int argc, char**argv){
 			scanf("%s", input);
 			int size = strlen(input);
 			char pt2[64];
-			sprintf(pt2, "%d\0", size);
+			sprintf(pt2, "%d\n", size);
 			size = strlen(pt2) + strlen(pt2);
 			char msg[4096] = "PUTMG!";//*msg = malloc(size + strlen(input));
 			strcat(msg, pt2);
-			char pt3 = "!";
+			char*pt3 = "!";
 			strcat(msg, pt3);
 			strncat(msg, input, 4095 - (strlen(pt2) + 7));//4095 because strncat copies up to n+1 for \0
 			
-			if (send(csoc, msg, strlen(msg)+1, 0) <= 0){
+			if (send(csoc, msg, strlen(msg)+1, 0) < 0){
 				perror("Failed to send message!\n");
 				break;
 			}
@@ -297,7 +297,7 @@ int main(int argc, char**argv){
 				printf("Error! No message box open.\n");
 			}
 			else if (strcmp(buff, "ER:WHAT?") == 0){//command failed
-				printf("Error! Command failed.\n", input);
+				printf("Error! Command failed '%s'.\n", input);
 			}
 			else{//check for message or incorrect response
 				perror("Invalid response from server.\n");
